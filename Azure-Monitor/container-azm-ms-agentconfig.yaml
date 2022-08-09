@@ -1,0 +1,117 @@
+kind: ConfigMap
+apiVersion: v1
+data:
+  schema-version:
+    v1
+  config-version:
+    ver1
+  log-data-collection-settings: |-
+    [log_collection_settings]
+       [log_collection_settings.stdout]
+          enabled = true
+          exclude_namespaces = ["kube-system"]
+
+       [log_collection_settings.stderr]
+          enabled = true
+          exclude_namespaces = ["kube-system"]
+
+       [log_collection_settings.env_var]
+          enabled = true
+       [log_collection_settings.enrich_container_logs]
+          enabled = false
+       [log_collection_settings.collect_all_kube_events]
+          enabled = false
+       [log_collection_settings.schema]
+          containerlog_schema_version = "v2"
+
+
+  prometheus-data-collection-settings: |-
+    [prometheus_data_collection_settings.cluster]
+        interval = "1m"
+
+        ## Uncomment the following settings with valid string arrays for prometheus scraping
+        #fieldpass = ["metric_to_pass1", "metric_to_pass12"]
+
+        #fielddrop = ["metric_to_drop"]
+
+        # An array of urls to scrape metrics from.
+        # urls = ["http://kube-dns.kube-system.svc.cluster.local:9153/metrics"]
+
+        # An array of Kubernetes services to scrape metrics from.
+        kubernetes_services = ["http://kube-state-metrics.default.svc.cluster.local:8080/metrics"]
+
+        # When monitor_kubernetes_pods = true, replicaset will scrape Kubernetes pods for the following prometheus annotations:
+        # - prometheus.io/scrape: Enable scraping for this pod
+        # - prometheus.io/scheme: If the metrics endpoint is secured then you will need to
+        #     set this to `https` & most likely set the tls config.
+        # - prometheus.io/path: If the metrics path is not /metrics, define it with this annotation.
+        # - prometheus.io/port: If port is not 9102 use this annotation
+        monitor_kubernetes_pods = true
+
+        ## Restricts Kubernetes monitoring to namespaces for pods that have annotations set and are scraped using the monitor_kubernetes_pods setting.
+        ## This will take effect when monitor_kubernetes_pods is set to true
+        ##   ex: monitor_kubernetes_pods_namespaces = ["default1", "default2", "default3"]
+        # monitor_kubernetes_pods_namespaces = ["default1"]
+
+        ## Label selector to target pods which have the specified label
+        ## This will take effect when monitor_kubernetes_pods is set to true
+        ## Reference the docs at https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+        # kubernetes_label_selector = "env=dev,app=nginx"
+
+        ## Field selector to target pods which have the specified field
+        ## This will take effect when monitor_kubernetes_pods is set to true
+        ## Reference the docs at https://kubernetes.io/docs/concepts/overview/working-with-objects/field-selectors/
+        ## eg. To scrape pods on a specific node
+        # kubernetes_field_selector = "spec.nodeName=$HOSTNAME"
+
+    [prometheus_data_collection_settings.node]
+        interval = "1m"
+
+        urls = ["http://$NODE_IP:9100/metrics"]
+
+        #fieldpass = ["metric_to_pass1", "metric_to_pass12"]
+
+        #fielddrop = ["metric_to_drop"]
+
+  metric_collection_settings: |-
+    [metric_collection_settings.collect_kube_system_pv_metrics]
+      enabled = false
+
+  alertable-metrics-configuration-settings: |-
+    [alertable_metrics_configuration_settings.container_resource_utilization_thresholds]
+        container_cpu_threshold_percentage = 95.0
+        container_memory_rss_threshold_percentage = 95.0
+        container_memory_working_set_threshold_percentage = 95.0
+
+    [alertable_metrics_configuration_settings.pv_utilization_thresholds]
+        pv_usage_threshold_percentage = 60.0
+
+    [alertable_metrics_configuration_settings.job_completion_threshold]
+        job_completion_threshold_time_minutes = 360
+  integrations: |-
+    [integrations.azure_network_policy_manager]
+        collect_basic_metrics = false
+        collect_advanced_metrics = false
+    [integrations.azure_subnet_ip_usage]
+        enabled = false
+
+# Doc - https://github.com/microsoft/Docker-Provider/blob/ci_prod/Documentation/AgentSettings/ReadMe.md
+  agent-settings: |-
+    # prometheus scrape fluent bit settings for high scale
+    # buffer size should be greater than or equal to chunk size else we set it to chunk size.
+    [agent_settings.prometheus_fbit_settings]
+      tcp_listener_chunk_size = 10
+      tcp_listener_buffer_size = 10
+      tcp_listener_mem_buf_limit = 200
+
+    # The following settings are "undocumented", we don't recommend uncommenting them unless directed by Microsoft.
+    # They increase the maximum stdout/stderr log collection rate but will also cause higher cpu/memory usage.
+    # [agent_settings.fbit_config]
+    #   log_flush_interval_secs = "1"                 # default value is 15
+    #   tail_mem_buf_limit_megabytes = "10"           # default value is 10
+    #   tail_buf_chunksize_megabytes = "1"            # default value is 32kb (comment out this line for default)
+    #   tail_buf_maxsize_megabytes = "1"              # defautl value is 32kb (comment out this line for default)
+
+metadata:
+  name: container-azm-ms-agentconfig
+  namespace: kube-system
